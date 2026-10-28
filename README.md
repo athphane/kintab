@@ -19,7 +19,7 @@ New households start at **zero**. Bring an existing balance if you need one. Run
 
 ## Screenshots
 
-The Mini App on mobile and desktop, in light and dark themes. Screenshots use a test household with sample expenses.
+The Mini App on mobile and desktop, in light and dark themes. Screenshots use fictional Maldivian demo members and sample expenses in MVR.
 
 | Mobile overview | Dark mode |
 | --- | --- |
@@ -70,10 +70,10 @@ The server verifies Telegram's signed `initData` (maximum age one hour), verifie
 | Command | Action |
 | --- | --- |
 | `/spent 450 groceries` | You paid, using the group's default split |
-| `/spent 1200 electricity @sister` | Log another member as payer; the post mentions them |
+| `/spent 1200 electricity @ibrahim` | Log another member as payer; the post mentions them |
 | Reply to a person's message with `/spent 1200 electricity` | Select a payer without a username |
 | `/paid 3000` | Your wallet paid; choose a recipient if ambiguous |
-| `/paid 3000 @sister` | Your wallet paid Sister's wallet |
+| `/paid 3000 @ibrahim` | Your wallet paid Ibrahim's wallet |
 | `/damage` or `/owed` | A fun balance image: total to settle, who pays whom, and wallet balances |
 | `/tab` | Refresh and re-pin the running total |
 | `/leave` | Stop sharing future expenses; past debts remain |
@@ -139,6 +139,8 @@ KINTAB_BROWSER_TEST=1 uv run pytest tests/test_browser.py -q
 ```
 
 The tests cover rounding/conservation, transfers, permissions, lifecycle, concurrency, cross-group isolation, HMAC tampering/expiry, API routes, chat flows and the mobile browser workflow. The browser check writes `artifacts/mobile-overview.png`. Test fixtures never use production credentials or add ledger data to the live household.
+
+To refresh the README's UI screenshots and balance reports, run `uv run python -m scripts.generate_demo_images`. It uses fictional Maldivian demo members and a temporary database.
 
 ## Docker and Cloudflare
 

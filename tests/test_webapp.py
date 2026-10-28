@@ -173,7 +173,7 @@ async def test_pages_assets_json_errors_and_group_deletion(web_context):
 
 
 async def test_wallet_setup_is_available_to_members_but_still_requires_membership(web_context, service):
-    client, group, (admin, sister, husband, dan), telegram, notifier = web_context
+    client, group, (admin, ibrahim, fathimath, hassan), telegram, notifier = web_context
     path = f"/api/{group['token']}/action"
 
     async def action(data, uid=44, status=200):
@@ -183,11 +183,11 @@ async def test_wallet_setup_is_available_to_members_but_still_requires_membershi
     actions = [
         {
             "action": "link_wallets",
-            "from_wallet_id": husband["wallet_id"],
-            "to_wallet_id": sister["wallet_id"],
+            "from_wallet_id": fathimath["wallet_id"],
+            "to_wallet_id": ibrahim["wallet_id"],
         },
-        {"action": "settler", "member_id": husband["id"]},
-        {"action": "unlink", "member_id": husband["id"]},
+        {"action": "settler", "member_id": fathimath["id"]},
+        {"action": "unlink", "member_id": fathimath["id"]},
     ]
     for data in actions:
         await action(data, uid=999, status=403)
@@ -198,13 +198,15 @@ async def test_wallet_setup_is_available_to_members_but_still_requires_membershi
     for data in actions:
         await action(data)
     state = await service.snapshot(group["id"])
-    assert next(m for m in state["members"] if m["id"] == husband["id"])["wallet_id"] != sister["wallet_id"]
+    assert (
+        next(m for m in state["members"] if m["id"] == fathimath["id"])["wallet_id"] != ibrahim["wallet_id"]
+    )
     # Losing admin status does not remove the ability to help with wallet setup.
     telegram.admins.clear()
-    await action({"action": "settler", "member_id": sister["id"]}, uid=11)
+    await action({"action": "settler", "member_id": ibrahim["id"]}, uid=11)
     await action({"action": "settings", "split_mode": "wallet"})
     # Invitations and the existing self-service unlink action still work.
-    await action({"action": "invite", "member_id": dan["id"]}, uid=22)
+    await action({"action": "invite", "member_id": hassan["id"]}, uid=22)
     async with service.db.transaction():
         invitation = await service.db.one("SELECT id FROM wallet_invites WHERE status='pending'")
     await action({"action": "respond_invite", "id": invitation["id"], "accept": True})
@@ -216,17 +218,17 @@ async def test_wallet_setup_is_available_to_members_but_still_requires_membershi
 
 @pytest.mark.parametrize("kind", ["settings", "leave", "forget", "member", "assign_wallet"])
 async def test_member_administration_api_checks_membership_on_every_action(web_context, service, kind):
-    client, group, (a, sister, husband, dan), telegram, _ = web_context
+    client, group, (a, ibrahim, fathimath, hassan), telegram, _ = web_context
     path = f"/api/{group['token']}/action"
     data = {
         "settings": {"action": "settings", "currency": "USD", "minor_units": 0},
-        "leave": {"action": "leave", "member_id": sister["id"]},
+        "leave": {"action": "leave", "member_id": ibrahim["id"]},
         "forget": {"action": "forget", "confirmation": group["token"]},
-        "member": {"action": "member", "name": "Child", "wallet_id": sister["wallet_id"]},
+        "member": {"action": "member", "name": "Mariyam", "wallet_id": ibrahim["wallet_id"]},
         "assign_wallet": {
             "action": "assign_wallet",
-            "member_id": husband["id"],
-            "wallet_id": sister["wallet_id"],
+            "member_id": fathimath["id"],
+            "wallet_id": ibrahim["wallet_id"],
         },
     }[kind]
 
@@ -240,7 +242,7 @@ async def test_member_administration_api_checks_membership_on_every_action(web_c
     telegram.removed.remove(44)
     await service.leave(group["id"], 44)
     assert (await action()).status == 403
-    await service.join(group["id"], 44, "Dan")
+    await service.join(group["id"], 44, "Hassan")
     response = await action()
     assert response.status == 200, await response.json()
     if kind == "forget":
@@ -250,9 +252,9 @@ async def test_member_administration_api_checks_membership_on_every_action(web_c
         if kind == "settings":
             assert state["group"]["currency"] == "USD" and state["group"]["minor_units"] == 0
         elif kind == "leave":
-            assert next(m for m in state["members"] if m["id"] == sister["id"])["left_at"]
+            assert next(m for m in state["members"] if m["id"] == ibrahim["id"])["left_at"]
         else:
             person = next(
-                m for m in state["members"] if m["name"] == ("Child" if kind == "member" else "Husband")
+                m for m in state["members"] if m["name"] == ("Mariyam" if kind == "member" else "Fathimath")
             )
-            assert person["wallet_id"] == sister["wallet_id"]
+            assert person["wallet_id"] == ibrahim["wallet_id"]

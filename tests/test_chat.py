@@ -271,7 +271,7 @@ async def test_any_joined_member_can_delete_in_chat_with_caller_bound_confirmati
     await handlers.callback(client, former_member)
     assert former_member.answers[-1][1]["show_alert"]
     assert await service.group_for_token(group["token"])
-    await service.join(group["id"], 44, "Dan")
+    await service.join(group["id"], 44, "Hassan")
     await handlers.callback(client, Query(client, group["chat_id"], 44, confirm))
     assert await service.group_for_token(group["token"]) is None
 

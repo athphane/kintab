@@ -19,8 +19,8 @@ def test_bad_money(source):
 
 
 def test_parsing_description_and_mention():
-    parsed = parse.parse_command("/spent@KinTabBot 1,200.50 electricity @Sister")
-    assert (parsed.amount_minor, parsed.description, parsed.username) == (120050, "electricity", "sister")
+    parsed = parse.parse_command("/spent@KinTabBot 1,200.50 electricity @Ibrahim")
+    assert (parsed.amount_minor, parsed.description, parsed.username) == (120050, "electricity", "ibrahim")
     assert parse.amount_minor("450", 0) == 450
     assert parse.amount_minor("1.234", 3) == 1234
 

@@ -17,10 +17,10 @@ async def household(service):
     people = [
         await service.join(group["id"], uid, name, username)
         for uid, name, username in [
-            (11, "Athphane", "athphane"),
-            (22, "Sister", "sister"),
-            (33, "Husband", None),
-            (44, "Dan", "dan"),
+            (11, "Aishath", "aishath"),
+            (22, "Ibrahim", "ibrahim"),
+            (33, "Fathimath", None),
+            (44, "Hassan", "hassan"),
         ]
     ]
     return group, people
