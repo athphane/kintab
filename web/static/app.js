@@ -1,10 +1,28 @@
 'use strict';
 const tg = window.Telegram?.WebApp;
 tg?.ready(); tg?.expand();
+const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+function syncTheme() {
+  const dark = tg?.colorScheme ? tg.colorScheme === 'dark' : systemTheme.matches;
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  const background = dark ? '#17241e' : '#f7f7f2';
+  document.querySelector('meta[name="theme-color"]').content = background;
+  tg?.setHeaderColor?.(background);
+  tg?.setBackgroundColor?.(background);
+}
+syncTheme();
+tg?.onEvent?.('themeChanged', syncTheme);
+systemTheme.addEventListener('change', syncTheme);
 const token = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get('tgWebAppStartParam');
 const app = document.getElementById('app');
 let state, page = '', busy = false, toastTimer;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
+const categoryStyles = new Map([
+  ['Groceries',['bag','sage']], ['Utilities',['bolt','sand']], ['Rent',['home','sage']],
+  ['Transport',['car','blue']], ['Eating out',['cup','peach']],
+]);
+const categoryStyle = category => categoryStyles.get(category) || ['history','sage'];
 const member = id => state.members.find(m => m.id === Number(id));
 const wallet = id => state.wallets.find(w => w.id === Number(id));
 const activeMembers = () => state.members.filter(m => !m.left_at);
@@ -67,47 +85,51 @@ async function mutate(action, values = {}, target = null) {
   finally { busy = false; document.querySelectorAll('button').forEach(b => b.disabled = false); }
 }
 const button = (label, action, attrs = '', style = 'small') => `<button class="${style}" data-action="${action}" ${attrs}>${label}</button>`;
-const empty = (title, detail = '') => `<div class="empty"><div class="symbol">◌</div><h2>${title}</h2><p>${detail}</p></div>`;
+const empty = (title, detail = '') => `<div class="empty"><div class="symbol">${icon('check')}</div><h2>${title}</h2><p>${detail}</p></div>`;
 const heading = (title, sub, eyebrow = 'THE HOUSEHOLD TAB') => `<div class="heading"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p class="muted">${sub}</p></div>`;
 function walletLines(lines, controls = false) {
   if (!lines.length) return empty('All settled.', 'A little less to keep track of. Add an expense when someone pays for the household.');
   return lines.map(line => {
     const source = wallet(line.from_wallet_id), target = wallet(line.to_wallet_id);
-    return `<div class="wallet-line"><div class="row"><div><strong>${esc(source.name)}</strong> <span class="muted">→</span> ${esc(target.name)}
+    return `<div class="wallet-line"><div class="row"><span class="avatar">${esc(source.name.slice(0,1))}</span><div class="wallet-person"><div class="wallet-route"><strong>${esc(source.name)}</strong> ${icon('arrow')} <span>${esc(target.name)}</span></div>
       <div class="sub">${esc(source.settler?.name || source.name)} settles</div></div><span class="amount">${money(line.amount_minor)}</span></div>
       ${controls ? `<div class="actions">${own(source.id) || own(target.id) ? `<a class="button small" href="#transfer:payment:${source.id}:${target.id}:${line.amount_minor}">Record payment</a>` : ''}
       ${own(target.id) ? `<a class="button small" href="#transfer:writeoff:${source.id}:${target.id}:${line.amount_minor}">Forgive</a>` : ''}</div>` : ''}</div>`;
   }).join('');
 }
-function entryCard(e, entity) {
+function entryCard(e, entity, compact = false) {
   const expense = entity === 'expense';
   const inactive = expense ? e.deleted_at : e.undone_at;
   const title = expense ? e.description : {payment:'Payment', opening:'Opening balance', writeoff:'Debt forgiven'}[e.kind];
   const detail = expense ? `${member(e.payer_member_id)?.name} paid · ${e.category}` :
     `${wallet(e.from_wallet_id)?.name} → ${wallet(e.to_wallet_id)?.name}${e.kind === 'opening' ? ' · credit → debt' : ''}`;
-  return `<article class="entry ${inactive ? 'inactive' : ''}"><div class="row"><div><div class="entry-title">${esc(title)}</div>
-    <div class="sub">${esc(detail)}</div><time>${new Date(e.created_at).toLocaleDateString(undefined, {month:'short',day:'numeric',year:'numeric'})}</time></div>
+  const [entryIcon, tint] = expense ? categoryStyle(e.category) : ['transfer','blue'];
+  return `<article class="entry ${inactive ? 'inactive' : ''} ${compact ? 'compact' : ''}"><div class="row entry-main"><span class="entry-icon ${tint}">${icon(entryIcon)}</span><div class="entry-copy"><div class="entry-title">${esc(title)}</div>
+    <div class="sub">${esc(detail)}</div><time datetime="${esc(e.created_at)}">${new Date(e.created_at).toLocaleDateString(undefined, {month:'short',day:'numeric',year:'numeric'})}</time></div>
     <div class="amount">${money(e.amount_minor)}<div class="sub">${inactive ? (expense ? 'Deleted' : 'Undone') : esc(state.group.currency)}</div></div></div>
-    ${expense ? `<details><summary>Who shares this?</summary>${e.shares.map(s => `<div class="row sub"><span>${esc(member(s.member_id)?.name)} · ${esc(wallet(s.wallet_id)?.name)}</span><span>${money(s.amount_minor)}</span></div>`).join('')}</details>` : ''}
+    ${compact ? '' : `${expense ? `<details><summary>Who shares this?</summary>${e.shares.map(s => `<div class="row sub"><span>${esc(member(s.member_id)?.name)} · ${esc(wallet(s.wallet_id)?.name)}</span><span>${money(s.amount_minor)}</span></div>`).join('')}</details>` : ''}
     <div class="actions">${expense && e.can_edit ? `<a class="button small" href="#expense:${e.id}">Edit</a>${button('Delete','delete-expense',`data-id="${e.id}"`,'small danger')}` : ''}
     ${expense && e.can_review ? button('Not mine?','review',`data-id="${e.id}"`) : ''}
-    ${!expense && e.can_undo ? button('Undo','undo',`data-id="${e.id}"`) + (e.kind === 'opening' ? `<a class="button small" href="#opening:${e.id}">Edit</a>` : '') : ''}</div></article>`;
+    ${!expense && e.can_undo ? button('Undo','undo',`data-id="${e.id}"`) + (e.kind === 'opening' ? `<a class="button small" href="#opening:${e.id}">Edit</a>` : '') : ''}</div>`}</article>`;
 }
-function historyItems(expenses, transfers, limit = Infinity) {
+function historyItems(expenses, transfers, limit = Infinity, compact = false) {
   const all = [...expenses.map(e => ({e,entity:'expense'})), ...transfers.map(e => ({e,entity:'transfer'}))];
-  return all.sort((a,b) => b.e.created_at.localeCompare(a.e.created_at)).slice(0,limit).map(({e,entity}) => entryCard(e,entity)).join('') || empty('No entries yet.', 'Your household’s expenses and payments will appear here.');
+  return all.sort((a,b) => b.e.created_at.localeCompare(a.e.created_at)).slice(0,limit).map(({e,entity}) => entryCard(e,entity,compact)).join('') || empty('No entries yet.', 'Your household’s expenses and payments will appear here.');
 }
 function home() {
   const ownBalance = state.me.wallet_ids.reduce((n,id) => n + (state.balances[id] || 0), 0);
   app.innerHTML = heading('A little more in balance.', `Your shared spending, all in one place.`) +
-    `<section class="card balance-card"><div class="eyebrow">${esc(wallet(state.me.wallet_id)?.name)} · ${ownBalance >= 0 ? 'YOU ARE OWED' : 'YOU OWE'}</div>
+    `<section class="card balance-card home-balance"><img class="balance-art" src="static/images/balance-sculpture.png" alt="" aria-hidden="true"><div class="balance-content"><div class="eyebrow">${icon('wallet')} ${esc(wallet(state.me.wallet_id)?.name)} · ${ownBalance === 0 ? 'ALL SETTLED' : ownBalance > 0 ? 'YOU ARE OWED' : 'YOU OWE'}</div>
     <div class="amount"><span class="currency">${esc(state.group.currency)}</span> ${money(Math.abs(ownBalance))}</div>
-    <div class="row"><span class="sub">${ownBalance === 0 ? 'Your wallet is all settled.' : 'Across your wallet and its history.'}</span><a href="#breakdown">Why this amount? ↗</a></div></section>
-    <div class="grid"><a href="#expense" class="button primary">＋ Add expense</a><a href="#settle" class="button">↗ Settle up</a></div>
+    <div class="sub">${ownBalance === 0 ? 'Your wallet is all settled.' : 'Across your wallet and its history.'}</div>
+    <a class="balance-link" href="#breakdown">Why this amount? ${icon('arrow')}</a></div></section>
+    <div class="quick-actions"><a href="#expense" class="button primary" aria-label="＋ Add expense">${icon('plus')} Add expense</a><a href="#settle" class="button">${icon('transfer')} Settle up</a></div>
+    <div class="overview-columns"><div>
     <div class="section-heading"><h2>Who owes whom</h2><span class="tag">Simplified · ${esc(state.group.currency)}</span></div>
-    <section class="card">${walletLines(state.simplified)}</section>
+    <section class="card settlement-card">${walletLines(state.simplified)}</section></div><div>
     <div class="section-heading"><h2>Recent activity</h2><a class="ghost" href="#history">View all ↗</a></div>
-    <section class="card">${historyItems(state.expenses,state.transfers,4)}</section>`;
+    <section class="card activity-card">${historyItems(state.expenses,state.transfers,4,true)}</section></div></div>
+    <div class="page-footer">${icon('check')} Shared, settled. A little less to keep track of.</div>`;
 }
 async function history() {
   app.innerHTML = heading('The whole picture.', 'Every expense, payment and change. Nothing to keep in your head.', 'HISTORY') +
@@ -282,7 +304,12 @@ function settingsForm(){
 async function renderPage(){
   if(!state)return;
   const [route,...args]=(location.hash.slice(1)||'home').split(':');page=route;
-  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.dataset.page===route));
+  const activeRoute = ['settle','transfer','opening','breakdown'].includes(route) ? 'home' : route;
+  document.querySelectorAll('nav a').forEach(a=>{
+    const active = a.dataset.page === activeRoute;
+    a.classList.toggle('active',active);
+    if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+  });
   try{
     if(route==='home')home();else if(route==='history')await history();else if(route==='expense')expenseForm(...args);
     else if(route==='settle')settle();else if(route==='transfer')transferForm(...args);else if(route==='opening')openingForm(...args);

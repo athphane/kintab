@@ -14,6 +14,82 @@ from tests.test_webapp import TOKEN, FakeTelegram, QuietNotifier, signed
 pytestmark = pytest.mark.skipif(os.environ.get("KINTAB_BROWSER_TEST") != "1", reason="Explicit browser test")
 
 
+async def test_responsive_design_and_theme(service, household, aiohttp_server):
+    group, people = household
+    for payer, amount, description, category in [
+        (11, 90000, "Weekly groceries", "Groceries"),
+        (22, 65000, "Electricity", "Utilities"),
+        (44, 18000, "Dinner together", "Eating out"),
+    ]:
+        await service.add_expense(
+            group["id"],
+            payer,
+            {"amount_minor": amount, "description": description, "category": category},
+        )
+    server = await aiohttp_server(
+        create_app(Settings(1, "test", TOKEN, "KinTabTestBot"), service, FakeTelegram(), QuietNotifier())
+    )
+    output = Path("artifacts/design")
+    output.mkdir(parents=True, exist_ok=True)
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(executable_path=os.environ.get("KINTAB_CHROMIUM"))
+        context = await browser.new_context(viewport={"width": 390, "height": 844})
+        await context.route("https://telegram.org/**", lambda route: route.abort())
+        await context.route("https://fonts.googleapis.com/**", lambda route: route.abort())
+        await context.add_init_script(
+            "window.Telegram={WebApp:{ready(){},expand(){},colorScheme:'light',"
+            "onEvent(name,callback){this[name]=callback;},"
+            f"initData:{json.dumps(signed(start_param=group['token']))},"
+            f"initDataUnsafe:{json.dumps({'start_param': group['token']})}" + "}};"
+        )
+        page = await context.new_page()
+        errors = []
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        await page.goto(str(server.make_url("/")))
+        await page.get_by_role("heading", name="A little more in balance.").wait_for()
+        artwork = page.locator(".balance-art")
+        await expect(artwork).to_have_js_property("complete", True)
+        assert await artwork.evaluate("image => image.naturalWidth > 0")
+        await page.screenshot(path=str(output / "kintab-mobile-light.png"))
+        await page.screenshot(path=str(output / "kintab-mobile-full.png"), full_page=True)
+        for scheme in ["light", "dark"]:
+            await page.evaluate(
+                "scheme => { window.Telegram.WebApp.colorScheme=scheme; window.Telegram.WebApp.themeChanged(); }",
+                scheme,
+            )
+            for width in [320, 390, 768, 1280]:
+                await page.set_viewport_size({"width": width, "height": 900})
+                for route, title in [
+                    ("home", "A little more in balance."),
+                    ("history", "The whole picture."),
+                    ("expense", "Someone picked up the bill."),
+                    ("summary", "A month, accounted for."),
+                    ("group", "A household, together."),
+                    ("settle", "Bring things even."),
+                    ("transfer:payment", "Record a payment."),
+                    ("breakdown", "Every part of the balance."),
+                ]:
+                    await page.evaluate("route => location.hash=route", route)
+                    await page.get_by_role("heading", name=title, exact=True).wait_for()
+                    assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), (
+                        scheme,
+                        width,
+                        route,
+                    )
+                    active = page.locator('nav [aria-current="page"]')
+                    await expect(active).to_have_count(1)
+                    if scheme == "light" and width == 390 and route in ["expense", "history", "summary"]:
+                        await page.screenshot(path=str(output / f"kintab-mobile-{route}.png"), full_page=True)
+                await page.evaluate("location.hash='home'")
+                await page.get_by_role("heading", name="A little more in balance.").wait_for()
+                if width == 1280:
+                    await page.screenshot(path=str(output / f"kintab-desktop-{scheme}.png"), full_page=True)
+                if scheme == "dark" and width == 390:
+                    await page.screenshot(path=str(output / "kintab-mobile-dark.png"))
+        assert errors == []
+        await browser.close()
+
+
 async def test_mobile_workflow_real_api(service, household, aiohttp_server, tmp_path):
     group, people = household
     app = create_app(Settings(1, "test", TOKEN, "KinTabTestBot"), service, FakeTelegram(), QuietNotifier())
@@ -74,7 +150,12 @@ async def test_mobile_workflow_real_api(service, household, aiohttp_server, tmp_
         assert not await page.evaluate("Boolean(window.XSS)")
         state = await service.snapshot(group["id"])
         assert [s["amount_minor"] for s in state["expenses"][1]["shares"]] == [6667, 3333]
-        await page.locator("article.entry").filter(has_text="<img src=x").get_by_role("link", name="Edit").click()
+        await (
+            page.locator("article.entry")
+            .filter(has_text="<img src=x")
+            .get_by_role("link", name="Edit")
+            .click()
+        )
         await expect(page.get_by_text("Current shares")).to_be_visible()
         await expect(page.get_by_label("Change who shares this expense")).to_be_checked()
         await expect(page.get_by_label("Split between")).to_be_visible()
