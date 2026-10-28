@@ -1,0 +1,12 @@
+.venv
+.git
+.pytest_cache
+.ruff_cache
+__pycache__
+**/__pycache__
+config.ini
+data
+workdir
+tests
+artifacts
+PLAN.md

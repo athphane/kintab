@@ -1,0 +1,16 @@
+[telegram]
+api_id =
+api_hash =
+bot_token =
+bot_username =
+# Register this short name with BotFather /newapp; use the public_url below.
+app_name = app
+
+[web]
+public_url = https://kintab.athfan.dev
+host = 127.0.0.1
+port = 8080
+
+[storage]
+data_dir = data
+workdir = workdir

@@ -1,0 +1,23 @@
+services:
+  kintab-bot:
+    build: .
+    container_name: kintab-bot
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    environment:
+      KINTAB_WEB_HOST: 0.0.0.0
+    volumes:
+      - ./config.ini:/app/config.ini:ro
+      - ./data:/app/data
+      - ./workdir:/app/workdir
+    networks:
+      - cloudflare
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  cloudflare:
+    external: true

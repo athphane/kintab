@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f7f2">
+  <title>KinTab · Shared, settled.</title>
+  <link rel="stylesheet" href="static/app.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script defer src="static/app.js"></script>
+</head>
+<body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="icon-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></symbol>
+    <symbol id="icon-history" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 20h16M7 16v-5m5 5V4m5 12V8"/></symbol>
+    <symbol id="icon-group" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-2-4.5"/></symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="icon-transfer" viewBox="0 0 24 24"><path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4"/></symbol>
+    <symbol id="icon-wallet" viewBox="0 0 24 24"><path d="M20 8V5a2 2 0 0 0-2-2L5 6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h15V8H5a2 2 0 0 1 0-4"/><path d="M20 12h-5v5h5m-3-2.5h.01"/></symbol>
+    <symbol id="icon-bag" viewBox="0 0 24 24"><path d="M4 8h16l1 13H3L4 8Z"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="icon-bolt" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-8l1-7Z"/></symbol>
+    <symbol id="icon-car" viewBox="0 0 24 24"><path d="m5 5-2 7v7h18v-7l-2-7H5Zm-2 7h18M7 16h.01M17 16h.01M5 19v2m14-2v2"/></symbol>
+    <symbol id="icon-cup" viewBox="0 0 24 24"><path d="M4 8h12v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Zm12 1h2a3 3 0 0 1 0 6h-2M7 3v2m6-2v2"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </defs></svg>
+  <div class="shell">
+    <header><a class="brand" href="#home"><span class="brand-mark">k.</span> KinTab</a><div class="household-label"><span class="household-dot"></span><span id="group-title">SHARED, SETTLED.</span></div></header>
+    <main id="app" aria-live="polite"><div class="empty"><div class="loader"></div><h1>Getting your tab…</h1></div></main>
+    <nav aria-label="Main navigation">
+      <a href="#home" data-page="home"><span><svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg></span>Overview</a>
+      <a href="#history" data-page="history"><span><svg class="icon" aria-hidden="true"><use href="#icon-history"/></svg></span>History</a>
+      <a href="#expense" data-page="expense" class="add-nav"><span><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg></span>Add expense</a>
+      <a href="#summary" data-page="summary"><span><svg class="icon" aria-hidden="true"><use href="#icon-chart"/></svg></span>Monthly</a>
+      <a href="#group" data-page="group"><span><svg class="icon" aria-hidden="true"><use href="#icon-group"/></svg></span>Group</a>
+    </nav>
+    <div id="toast" role="status" hidden></div>
+  </div>
+</body>
+</html>

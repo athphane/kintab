@@ -1,0 +1,11 @@
+config.ini
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+data/*
+workdir/*
+!data/.gitkeep
+!workdir/.gitkeep
+artifacts/
+
