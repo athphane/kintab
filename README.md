@@ -1,10 +1,21 @@
 # KinTab
 
-A Telegram bot and Mini App for household spending. People share expenses; wallets settle between them. A couple can share a wallet, and the ledger only tracks money between wallets.
+**Shared, settled.**
 
-The bot is **[@kintabbot](https://t.me/kintabbot)**. The web service is **https://kintab.athfan.dev**. A new household starts at **zero**, as requested. No opening debt is assumed or imported.
+Split household bills and settle up without leaving Telegram. KinTab combines a group bot with a polished Mini App, so everyone can see what was spent, how it was shared, and who owes whom. Couples can share a wallet while keeping individual expenses easy to track.
 
-Long chat summaries show as many complete rows as fit Telegram's message limit, with the full details available in **Open tab**. When pinning is unavailable, expense/payment posts retain the updated running total after deletion or undo as well.
+[![Telegram bot](https://img.shields.io/badge/Telegram-Open%20bot-26A5E4?logo=telegram&logoColor=white)](https://t.me/kintabbot)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](#local-development)
+[![Self-host with Docker](https://img.shields.io/badge/Self--host-Docker-2496ED?logo=docker&logoColor=white)](#docker-and-cloudflare)
+
+[Open @kintabbot](https://t.me/kintabbot) · [See screenshots](#screenshots) · [Set up your household](#first-household-setup) · [Host your own](#docker-and-cloudflare)
+
+- **Log expenses in chat.** Send `/spent 450 groceries`, then open the Mini App to see the split, history, and monthly totals.
+- **Share wallets, not confusion.** Couples can settle together; guests and weighted splits let the tab match your household.
+- **Make settling up clear.** See who pays whom, record payments, and share a balance report with `/damage`.
+- **Keep the details.** Trace every balance back to its entries, review changes, and export the ledger as CSV.
+
+New households start at **zero**. Bring an existing balance if you need one. Run your own instance with Python, SQLite, and Docker, or try the bot at **[@kintabbot](https://t.me/kintabbot)**. The hosted Mini App lives at [kintab.athfan.dev](https://kintab.athfan.dev); open it through your Telegram group to sign in.
 
 ## Screenshots
 
@@ -49,6 +60,8 @@ The `/damage` command creates a shareable balance report with the same design, i
 5. Tap **Done → Start fresh**. This starts at zero and keeps any entries already recorded. **Add opening balance** is available for other households with existing debt.
 6. Give the bot permission to pin messages. Without it, the bot asks once and includes the running total under each new entry. `/tab` retries pinning.
 7. Tap **Open tab** under the welcome, running total, or any expense/payment post to use the Mini App. Send `/tab` (or `/tab@kintabbot`) for a fresh reply with the button. A group button uses a Direct Link URL, not a private-chat `web_app` button. The random group token is not a chat ID.
+
+Long chat summaries show as many complete rows as fit Telegram's message limit, with the full details available in **Open tab**. When pinning is unavailable, expense/payment posts retain the updated running total after deletion or undo as well.
 
 The server verifies Telegram's signed `initData` (maximum age one hour), verifies current Telegram group membership, and checks active tab membership on every API route. Reopen the Mini App after its session expires. Any active tab member in the Telegram group can administer the tab.
 
