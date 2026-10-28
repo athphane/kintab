@@ -6,6 +6,29 @@ The bot is **[@kintabbot](https://t.me/kintabbot)**. The web service is **https:
 
 Long chat summaries show as many complete rows as fit Telegram's message limit, with the full details available in **Open tab**. When pinning is unavailable, expense/payment posts retain the updated running total after deletion or undo as well.
 
+## Screenshots
+
+The Mini App on mobile and desktop, in light and dark themes. Screenshots use a test household with sample expenses.
+
+| Mobile overview | Dark mode |
+| --- | --- |
+| <img src="docs/screenshots/kintab-mobile-light.png" alt="KinTab mobile overview with wallet balance and settlements" width="300"> | <img src="docs/screenshots/kintab-mobile-dark.png" alt="KinTab mobile overview in dark mode" width="300"> |
+
+| Add an expense | History | Monthly summary |
+| --- | --- | --- |
+| <img src="docs/screenshots/kintab-mobile-expense.png" alt="Expense form with amount, payer and split controls" width="240"> | <img src="docs/screenshots/kintab-mobile-history.png" alt="Expense history with filters and entry controls" width="240"> | <img src="docs/screenshots/kintab-mobile-summary.png" alt="Monthly household spending and wallet shares" width="240"> |
+
+[See the full mobile overview](docs/screenshots/kintab-mobile-full.png).
+
+![KinTab desktop overview with balance, settlements and recent activity](docs/screenshots/kintab-desktop-light.png)
+
+<details>
+<summary>Desktop dark mode</summary>
+
+![KinTab desktop overview in dark mode](docs/screenshots/kintab-desktop-dark.png)
+
+</details>
+
 ## First household setup
 
 1. In **BotFather**, enable groups and keep **Group Privacy enabled**. Use `/newapp` to register the Mini App short name `app`, with URL `https://kintab.athfan.dev/`. If it already exists, check its URL with `/myapps`.
