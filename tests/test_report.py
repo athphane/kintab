@@ -1,7 +1,8 @@
 import io
 from copy import deepcopy
 
-from PIL import Image
+import pytest
+from PIL import Image, ImageDraw
 
 from bot import report
 
@@ -95,9 +96,13 @@ async def test_settled_empty_and_shared_wallet_reports(service, household):
     assert_telegram_image(report.damage_image(await service.snapshot(empty_group["id"])))
 
 
-async def test_large_reports_keep_full_totals_and_disclose_truncation(service, household, monkeypatch):
+@pytest.mark.parametrize("currency,minor_units", [("JPY", 0), ("MVR", 2), ("KWD", 3)])
+async def test_large_reports_keep_full_totals_and_disclose_truncation(
+    service, household, monkeypatch, currency, minor_units
+):
     group, _ = household
     state = deepcopy(await service.snapshot(group["id"]))
+    state["group"].update(currency=currency, minor_units=minor_units)
     name = "<House & home> 😀 " * 100
     state["group"]["title"] = name
     creditor = state["wallets"][0]
@@ -116,6 +121,15 @@ async def test_large_reports_keep_full_totals_and_disclose_truncation(service, h
         return original_text(draw, xy, value, *args, **kwargs)
 
     monkeypatch.setattr(report, "_text", capture_text)
+    rendered = []
+    original_draw_text = ImageDraw.ImageDraw.text
+
+    def capture_draw_text(draw, xy, text, *args, **kwargs):
+        bounds = draw.textbbox(xy, text, font=kwargs["font"], anchor=kwargs["anchor"])
+        rendered.append((text, bounds))
+        return original_draw_text(draw, xy, text, *args, **kwargs)
+
+    monkeypatch.setattr(ImageDraw.ImageDraw, "text", capture_draw_text)
     summary = report.damage_summary(state)
     assert summary["owed_minor"] == 100 * 10**12
     assert len(summary["routes"]) == 100 and len(summary["wallets"]) == 101
@@ -123,3 +137,10 @@ async def test_large_reports_keep_full_totals_and_disclose_truncation(service, h
     assert_telegram_image(io.BytesIO(output.getvalue()))
     assert "+ 94 more payments in Open tab" in labels
     assert "+ 95 more wallets in Open tab" in labels
+    values = [text for text, _ in rendered]
+    assert report.money(summary["owed_minor"], state["group"]) in values
+    assert f"{currency} {report.money(10**12, state['group'])}" in values
+    with Image.open(output) as image:
+        for text, (left, top, right, bottom) in rendered:
+            assert 0 <= left < right <= image.width, text
+            assert 0 <= top < bottom <= image.height, text

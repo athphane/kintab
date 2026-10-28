@@ -29,6 +29,17 @@ The Mini App on mobile and desktop, in light and dark themes. Screenshots use a 
 
 </details>
 
+The `/damage` command creates a shareable balance report with the same design, including the settlement plan and each wallet's balance.
+
+<img src="docs/screenshots/kintab-damage.png" alt="KinTab balance report with total to settle, shared spending, payment routes and wallet balances" width="540">
+
+<details>
+<summary>Fully settled report</summary>
+
+<img src="docs/screenshots/kintab-damage-settled.png" alt="KinTab balance report after all payments are recorded" width="540">
+
+</details>
+
 ## First household setup
 
 1. In **BotFather**, enable groups and keep **Group Privacy enabled**. Use `/newapp` to register the Mini App short name `app`, with URL `https://kintab.athfan.dev/`. If it already exists, check its URL with `/myapps`.
