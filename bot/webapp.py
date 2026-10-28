@@ -5,7 +5,7 @@ import logging
 import time
 from datetime import UTC
 from pathlib import Path
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, quote
 
 from aiohttp import web
 from pyrogram import enums
@@ -274,6 +274,7 @@ def create_app(settings, service, client, notifier):
     app = web.Application(middlewares=[errors], client_max_size=64 * 1024)
     app[SETTINGS], app[SERVICE], app[CLIENT], app[NOTIFIER] = settings, service, client, notifier
     html = (WEB_DIR / "index.html").read_text()
+    html = html.replace("__KINTAB_BOT_URL__", f"https://t.me/{quote(settings.bot_username, safe='')}")
     for asset in ("static/app.css", "static/app.js"):
         digest = hashlib.sha256((WEB_DIR / asset).read_bytes()).hexdigest()[:12]
         html = html.replace(f'"{asset}"', f'"/{asset}?v={digest}"')

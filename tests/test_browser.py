@@ -14,6 +14,63 @@ from tests.test_webapp import TOKEN, FakeTelegram, QuietNotifier, signed
 pytestmark = pytest.mark.skipif(os.environ.get("KINTAB_BROWSER_TEST") != "1", reason="Explicit browser test")
 
 
+@pytest.mark.parametrize("telegram_context", ["none", "browser", "miniapp"])
+async def test_public_onboarding_and_telegram_handoff(service, household, aiohttp_server, telegram_context):
+    group, _ = household
+    server = await aiohttp_server(
+        create_app(Settings(1, "test", TOKEN, "KinTabTestBot"), service, FakeTelegram(), QuietNotifier())
+    )
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(executable_path=os.environ.get("KINTAB_CHROMIUM"))
+        context = await browser.new_context(viewport={"width": 390, "height": 844})
+        await context.route("https://telegram.org/**", lambda route: route.abort())
+        await context.route("https://fonts.googleapis.com/**", lambda route: route.abort())
+        await context.route("https://t.me/**", lambda route: route.fulfill(body="Telegram handoff"))
+        if telegram_context != "none":
+            init_data = "expired-session" if telegram_context == "miniapp" else ""
+            await context.add_init_script(
+                "window.Telegram={WebApp:{ready(){},expand(){},"
+                "openTelegramLink(url){window.openedTelegramLink=url;},"
+                f"initData:{json.dumps(init_data)},"
+                f"initDataUnsafe:{json.dumps({'start_param': group['token']})}" + "}};"
+            )
+        page = await context.new_page()
+        errors, api_requests = [], []
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.on(
+            "request", lambda request: api_requests.append(request.url) if "/api/" in request.url else None
+        )
+        await page.goto(str(server.make_url("/")) + "#history")
+        await page.get_by_role("heading", name="Your household tab.").wait_for()
+        add = page.get_by_role("link", name="Add KinTab to your group", exact=True)
+        expected_url = "https://t.me/KinTabTestBot?startgroup=welcome"
+        await expect(add).to_have_attribute("href", expected_url)
+        await expect(page.get_by_role("link", name="Open KinTab in Telegram")).to_have_attribute(
+            "href", "https://t.me/KinTabTestBot"
+        )
+        await expect(page.get_by_role("navigation")).to_be_hidden()
+        await expect(page.locator(".onboarding-steps li")).to_have_count(3)
+        if telegram_context == "miniapp":
+            await expect(page.get_by_role("alert")).to_have_text("Reopen the tab from Telegram to sign in.")
+            assert len(api_requests) == 1
+        else:
+            assert api_requests == []
+        if telegram_context == "browser":
+            output = Path("artifacts/design")
+            output.mkdir(parents=True, exist_ok=True)
+            await page.screenshot(path=str(output / "kintab-onboarding.png"), full_page=True)
+        await page.set_viewport_size({"width": 320, "height": 844})
+        assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+        await add.click()
+        if telegram_context == "miniapp":
+            assert await page.evaluate("window.openedTelegramLink") == expected_url
+            assert page.url.endswith("#history")
+        else:
+            await page.wait_for_url(expected_url)
+        assert errors == []
+        await browser.close()
+
+
 async def test_responsive_design_and_theme(service, household, aiohttp_server):
     group, people = household
     for payer, amount, description, category in [

@@ -74,6 +74,16 @@ def test_init_data_tampering_expiry_duplicate_fields_and_bad_user():
     assert verify_init_data("", TOKEN) is None
 
 
+async def test_public_page_exposes_only_configured_bot_link(web_context):
+    client, _, _, _, _ = web_context
+    response = await client.get("/")
+    html = await response.text()
+    assert response.status == 200
+    assert '<meta name="kintab-bot-url" content="https://t.me/KinTabTestBot">' in html
+    assert "__KINTAB_BOT_URL__" not in html
+    assert TOKEN not in html
+
+
 async def test_all_routes_require_signed_data_and_group_membership(web_context):
     client, g, people, telegram, _ = web_context
     base = f"/api/{g['token']}/"

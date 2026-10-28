@@ -15,6 +15,8 @@ tg?.onEvent?.('themeChanged', syncTheme);
 systemTheme.addEventListener('change', syncTheme);
 const token = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get('tgWebAppStartParam');
 const app = document.getElementById('app');
+const navigation = document.querySelector('nav');
+const botUrl = document.querySelector('meta[name="kintab-bot-url"]').content;
 let state, page = '', busy = false, toastTimer;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
@@ -67,6 +69,8 @@ async function api(route, data) {
 async function refresh() {
   state = await api('state');
   document.getElementById('group-title').textContent = state.group.title;
+  navigation.hidden = false;
+  document.body.dataset.view = 'tab';
 }
 async function mutate(action, values = {}, target = null) {
   if (busy) return;
@@ -76,7 +80,7 @@ async function mutate(action, values = {}, target = null) {
     const result = await api('action', {action, ...values});
     if (result.forgotten || (action === 'leave' && (!values.member_id || values.member_id === state.me.id))) {
       app.innerHTML = `<div class="empty"><h1>${result.forgotten ? 'Tab deleted' : 'You left the tab'}</h1><p>${result.forgotten ? 'The group can start a fresh tab with /start.' : 'Your history and unsettled balance stay on the tab. Tap I’m in in the group to rejoin.'}</p></div>`;
-      state = null; return;
+      state = null; navigation.hidden = true; return;
     }
     await refresh(); toast('Saved');
     if (target) { location.hash = target; if (page === target) await renderPage(); }
@@ -87,6 +91,19 @@ async function mutate(action, values = {}, target = null) {
 const button = (label, action, attrs = '', style = 'small') => `<button class="${style}" data-action="${action}" ${attrs}>${label}</button>`;
 const empty = (title, detail = '') => `<div class="empty"><div class="symbol">${icon('check')}</div><h2>${title}</h2><p>${detail}</p></div>`;
 const heading = (title, sub, eyebrow = 'THE HOUSEHOLD TAB') => `<div class="heading"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p class="muted">${sub}</p></div>`;
+function welcome(error = '') {
+  navigation.hidden = true;
+  document.body.dataset.view = 'welcome';
+  app.innerHTML = `<section class="onboarding"><div class="onboarding-symbol">${icon('group')}</div>
+    <h1>Your household tab.</h1><p class="muted">Shared expenses and simpler settlements, right in Telegram.</p>
+    ${error ? `<div class="notice" role="alert">${esc(error)}</div>` : ''}
+    <div class="onboarding-actions"><a class="button primary" data-telegram-link href="${esc(botUrl)}?startgroup=welcome">${icon('plus')} Add KinTab to your group</a>
+    <a class="button" data-telegram-link href="${esc(botUrl)}">Open KinTab in Telegram ${icon('arrow')}</a></div>
+    <ol class="onboarding-steps"><li><strong>Choose your group</strong><p>Telegram will ask where to add KinTab.</p></li>
+    <li><strong>Tap “I’m in”</strong><p>Join your household’s tab from the bot’s welcome message.</p></li>
+    <li><strong>Open your tab</strong><p>Tap “Open tab” in the group to see your shared expenses.</p></li></ol>
+    <p class="form-note">Already using KinTab? Open your Telegram group and tap <strong>Open tab</strong>. Send <strong>/tab</strong> for a fresh button.</p></section>`;
+}
 function walletLines(lines, controls = false) {
   if (!lines.length) return empty('All settled.', 'A little less to keep track of. Add an expense when someone pays for the household.');
   return lines.map(line => {
@@ -317,6 +334,11 @@ async function renderPage(){
   }catch(error){toast(error.message,true);}
 }
 app.addEventListener('click',async event=>{
+  const link=event.target.closest('a[data-telegram-link]');
+  if(link && tg?.initData && typeof tg.openTelegramLink === 'function'){
+    try{tg.openTelegramLink(link.href);event.preventDefault();}catch{/* Keep the HTTPS link as a fallback. */}
+    return;
+  }
   const b=event.target.closest('[data-action]');if(!b||busy)return;
   const id=Number(b.dataset.id),action=b.dataset.action;
   if(action==='delete-expense')mutate('delete_expense',{id});
@@ -339,5 +361,8 @@ app.addEventListener('click',async event=>{
   }
 });
 window.addEventListener('hashchange',()=>{tg?.HapticFeedback?.selectionChanged();renderPage();window.scrollTo(0,0);});
-async function boot(){try{await refresh();await renderPage();}catch(error){app.innerHTML=empty('Your household tab.',esc(error.message))+'<p class="form-note" style="text-align:center">Join with I’m in in your group before opening the tab.</p>';}}
+async function boot(){
+  if(!token || !tg?.initData){welcome();return;}
+  try{await refresh();await renderPage();}catch(error){welcome(error.message);}
+}
 boot();

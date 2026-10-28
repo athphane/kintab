@@ -79,6 +79,15 @@ async def chat(service):
     await notifier.close()
 
 
+async def test_startgroup_link_posts_household_welcome(service, chat):
+    client, _, handlers = chat
+    await handlers.command(client, Message(client, -987, "/start@KinTabTestBot welcome"))
+    group = await service.ensure_group(-987, "Household")
+    state = await service.snapshot(group["id"])
+    assert state["members"] == [] and state["expenses"] == []
+    assert any("I'm in" in message.text for message in client.messages)
+
+
 async def test_setup_join_commands_payer_and_unauthorized_buttons(service, chat):
     client, notifier, handlers = chat
     await handlers.command(client, Message(client, -123, "/start"))

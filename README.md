@@ -54,7 +54,7 @@ The `/damage` command creates a shareable balance report with the same design, i
 ## First household setup
 
 1. In **BotFather**, enable groups and keep **Group Privacy enabled**. Use `/newapp` to register the Mini App short name `app`, with URL `https://kintab.athfan.dev/`. If it already exists, check its URL with `/myapps`.
-2. Add the bot to the household group. It posts a welcome; `/start` also shows it.
+2. Visit [kintab.athfan.dev](https://kintab.athfan.dev) and tap **Add KinTab to your group**. Telegram prompts you to choose a group, adds the bot, and starts the welcome flow. You can also add the bot directly; `/start` shows the welcome.
 3. Tap **I'm in** to join. In **Open tab → Group → Add a member**, add other people by name and choose a new or existing wallet for each. They can share new expenses without using Telegram. Other Telegram users can also tap **I'm in** to join with their own wallet.
 4. Any joined member can use **Open tab → Group → Manage shared wallets** to combine wallets directly, including guests. Both wallets must be settled; the destination wallet keeps its settler. Use **Assign a wallet** to move one person to an existing wallet or give them a new wallet. Members can also choose settlers. For an invitation instead, tap **Set up wallets**, choose a person, and have that person accept.
 5. Tap **Done → Start fresh**. This starts at zero and keeps any entries already recorded. **Add opening balance** is available for other households with existing debt.
