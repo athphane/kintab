@@ -20,7 +20,6 @@ INK = "#183c30"
 MUTED = "#777e76"
 GREEN = "#214f3b"
 PALE = "#edf0e5"
-RED = "#b15243"
 LINE = "#e5e7de"
 HERO_MUTED = "#d5dfd1"
 AVATARS = [("#f4e2d5", "#a66349"), ("#e4eadb", "#596c4d"), ("#e7eef1", "#527583")]
@@ -106,18 +105,17 @@ def _balance_card(image, draw, summary, group):
     mask = Image.new("L", card.size)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, 951, 255), radius=32, fill=255)
     image.paste(card, (64, 372), mask)
-    label = "ALL SETTLED" if not summary["routes"] else "STILL TO SETTLE"
+    label = "ALL SETTLED" if not summary["routes"] else "TOTAL TO SETTLE"
     _text(draw, (96, 404), f"{label} · {group['currency']}", 19, bold=True, fill=HERO_MUTED, width=610)
     _amount(draw, (96, 450), money(summary["owed_minor"], group), 82, fill=SURFACE, width=610, anchor="lt")
-    note = (
-        "A little less to keep track of."
-        if not summary["routes"]
-        else "Send money, then record it with /paid."
-    )
-    _text(draw, (96, 568), note, 22, fill=HERO_MUTED, width=610)
+    if summary["routes"]:
+        _text(draw, (96, 550), "1. Send a payment your usual way.", 22, fill=HERO_MUTED, width=610)
+        _text(draw, (96, 588), "2. Record it with /paid AMOUNT.", 22, fill=HERO_MUTED, width=610)
+    else:
+        _text(draw, (96, 568), "Nothing to pay right now.", 22, fill=HERO_MUTED, width=610)
 
 
-def damage_summary(state):
+def balance_summary(state):
     active_wallets = {m["wallet_id"] for m in state["members"] if not m["left_at"]}
     wallets = [w for w in state["wallets"] if w["id"] in active_wallets or w["balance_minor"]]
     wallets.sort(key=lambda w: (-abs(w["balance_minor"]), w["id"]))
@@ -130,8 +128,8 @@ def damage_summary(state):
     }
 
 
-def damage_image(state):
-    summary = damage_summary(state)
+def balance_image(state):
+    summary = balance_summary(state)
     group = state["group"]
     wallets = {w["id"]: w for w in state["wallets"]}
     routes = summary["routes"][:MAX_ROUTES]
@@ -153,8 +151,8 @@ def damage_image(state):
     _pill(draw, 1016, 63, group["title"], width=520)
     draw.line((64, 145, 1016, 145), fill=LINE, width=1)
     _text(draw, (64, 184), "THE HOUSEHOLD TAB", 17, bold=True, fill=MUTED)
-    _text(draw, (64, 222), "The damage.", 76, family="serif")
-    _text(draw, (64, 318), "Your shared spending, all in one place.", 26, fill=MUTED)
+    _text(draw, (64, 222), "Your shared tab.", 76, family="serif")
+    _text(draw, (64, 318), "A snapshot to check when you’re ready.", 26, fill=MUTED)
 
     _balance_card(image, draw, summary, group)
     _surface(draw, (64, 650, 1016, 752))
@@ -162,15 +160,15 @@ def damage_image(state):
     _text(draw, (94, 713), "Expenses only · all time", 19, fill=MUTED, width=410)
     _amount(draw, (986, 682), f"{group['currency']} {money(summary['spent_minor'], group)}", 35, width=440)
 
-    _text(draw, (64, 792), "Who owes whom", 36, family="serif", width=620)
+    _text(draw, (64, 792), "Payments to make", 36, family="serif", width=620)
     _pill(draw, 1016, 789, group["debt_mode"].capitalize(), width=280)
     y = 854
     if not routes:
         _surface(draw, (64, y, 1016, y + 144))
         draw.ellipse((92, y + 36, 156, y + 100), fill=PALE)
         draw.line([(110, y + 68), (122, y + 80), (141, y + 56)], fill=GREEN, width=4)
-        _text(draw, (184, y + 35), "All settled. Household peace restored.", 29, family="serif", width=790)
-        _text(draw, (184, y + 85), "No awkward reminders required.", 23, fill=MUTED, width=790)
+        _text(draw, (184, y + 35), "All settled.", 29, family="serif", width=790)
+        _text(draw, (184, y + 85), "No payments to make right now.", 23, fill=MUTED, width=790)
         y += 160
     for index, route in enumerate(routes):
         source = wallets[route["from_wallet_id"]]
@@ -178,7 +176,7 @@ def damage_image(state):
         _surface(draw, (64, y, 1016, y + 104))
         _avatar(draw, 88, y + 24, source["name"], index)
         _text(draw, (170, y + 21), source["name"], 26, bold=True, width=480)
-        _text(draw, (170, y + 62), f"owes {target['name']}", 22, fill=MUTED, width=480)
+        _text(draw, (170, y + 62), f"pays {target['name']}", 22, fill=MUTED, width=480)
         _amount(draw, (986, y + 38), f"{group['currency']} {money(route['amount_minor'], group)}", width=300)
         y += 116
     if omitted_routes:
@@ -190,11 +188,13 @@ def damage_image(state):
     _surface(draw, (64, wallet_top, 1016, wallet_top + wallet_height))
     y = wallet_top + 20
     if not people:
-        _text(draw, (94, y + 27), "A fresh tab. The possibilities are expensive.", 25, fill=MUTED, width=890)
+        _text(
+            draw, (94, y + 27), "No expenses yet. Add one whenever you’re ready.", 25, fill=MUTED, width=890
+        )
     for index, wallet in enumerate(people):
         balance = wallet["balance_minor"]
-        color = RED if balance < 0 else GREEN if balance > 0 else MUTED
-        label = "OWES" if balance < 0 else "IS OWED" if balance > 0 else "ALL SETTLED"
+        color = GREEN if balance else MUTED
+        label = "TO PAY" if balance < 0 else "TO RECEIVE" if balance > 0 else "ALL SETTLED"
         _avatar(draw, 90, y + 15, wallet["name"], index, size=52)
         _text(draw, (166, y + 12), wallet["name"], 25, bold=True, width=430)
         _text(draw, (166, y + 49), label, 16, bold=True, fill=color, width=430)
@@ -215,12 +215,12 @@ def damage_image(state):
     footer_top = wallet_top + wallet_height + 40
     draw.line((64, footer_top, 1016, footer_top), fill=LINE, width=1)
     _text(draw, (64, footer_top + 26), "Shared, settled.", 23, bold=True, fill=GREEN)
-    _text(draw, (64, footer_top + 65), "Full details in Open tab · /damage", 19, fill=MUTED, width=620)
+    _text(draw, (64, footer_top + 65), "Full details in Open tab · /balance", 19, fill=MUTED, width=620)
     _amount(
         draw, (1016, footer_top + 65), datetime.now(UTC).strftime("%d %b %Y · UTC"), 18, fill=MUTED, width=300
     )
     output = io.BytesIO()
-    output.name = "kintab-damage.png"
+    output.name = "kintab-balance.png"
     image.save(output, format="PNG", optimize=True)
     output.seek(0)
     return output

@@ -1,6 +1,6 @@
 # Report fonts
 
-The `/damage` renderer uses the Mini App's typefaces, bundled so image generation works without network access:
+The `/balance` renderer uses the Mini App's typefaces, bundled so image generation works without network access:
 
 - [Lora](https://github.com/google/fonts/tree/main/ofl/lora) for headings and initials.
 - [DM Sans](https://github.com/google/fonts/tree/main/ofl/dmsans) for labels and body text.

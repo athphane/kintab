@@ -52,11 +52,11 @@ async def test_report_totals_use_live_entries_not_deleted_or_undone(service, hou
         },
     )
     state = await service.snapshot(gid)
-    summary = report.damage_summary(state)
+    summary = report.balance_summary(state)
     assert summary["spent_minor"] == 40000
     assert summary["owed_minor"] == 21000
     assert sum(line["amount_minor"] for line in summary["routes"]) == 21000
-    assert_telegram_image(report.damage_image(state))
+    assert_telegram_image(report.balance_image(state))
 
 
 async def test_direct_mode_cycles_are_still_shown_as_payments(service, household):
@@ -74,26 +74,26 @@ async def test_direct_mode_cycles_are_still_shown_as_payments(service, household
             },
         )
     state = await service.snapshot(gid)
-    assert report.damage_summary(state)["owed_minor"] == 0
+    assert report.balance_summary(state)["owed_minor"] == 0
     await service.update_settings(gid, 11, {"debt_mode": "direct"})
     state = await service.snapshot(gid)
     assert all(balance == 0 for balance in state["balances"].values())
-    assert report.damage_summary(state)["owed_minor"] == 300
-    assert len(report.damage_summary(state)["routes"]) == 3
-    assert_telegram_image(report.damage_image(state))
+    assert report.balance_summary(state)["owed_minor"] == 300
+    assert len(report.balance_summary(state)["routes"]) == 3
+    assert_telegram_image(report.balance_image(state))
 
 
 async def test_settled_empty_and_shared_wallet_reports(service, household):
     group, (a, s, h, d) = household
     gid = group["id"]
-    assert_telegram_image(report.damage_image(await service.snapshot(gid)))
+    assert_telegram_image(report.balance_image(await service.snapshot(gid)))
     await service.link_wallets(gid, 11, h["wallet_id"], s["wallet_id"])
-    summary = report.damage_summary(await service.snapshot(gid))
+    summary = report.balance_summary(await service.snapshot(gid))
     assert len(summary["wallets"]) == 3
     await service.leave(gid, 44)
-    assert len(report.damage_summary(await service.snapshot(gid))["wallets"]) == 2
+    assert len(report.balance_summary(await service.snapshot(gid))["wallets"]) == 2
     empty_group = await service.ensure_group(-100999, "Fresh start")
-    assert_telegram_image(report.damage_image(await service.snapshot(empty_group["id"])))
+    assert_telegram_image(report.balance_image(await service.snapshot(empty_group["id"])))
 
 
 @pytest.mark.parametrize("currency,minor_units", [("JPY", 0), ("MVR", 2), ("KWD", 3)])
@@ -130,10 +130,10 @@ async def test_large_reports_keep_full_totals_and_disclose_truncation(
         return original_draw_text(draw, xy, text, *args, **kwargs)
 
     monkeypatch.setattr(ImageDraw.ImageDraw, "text", capture_draw_text)
-    summary = report.damage_summary(state)
+    summary = report.balance_summary(state)
     assert summary["owed_minor"] == 100 * 10**12
     assert len(summary["routes"]) == 100 and len(summary["wallets"]) == 101
-    output = report.damage_image(state)
+    output = report.balance_image(state)
     assert_telegram_image(io.BytesIO(output.getvalue()))
     assert "+ 94 more payments in Open tab" in labels
     assert "+ 95 more wallets in Open tab" in labels

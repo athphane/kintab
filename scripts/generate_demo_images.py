@@ -13,7 +13,7 @@ from tempfile import TemporaryDirectory
 
 from bot.db import Database
 from bot.groups import TabService
-from bot.report import damage_image
+from bot.report import balance_image
 
 ROOT = Path(__file__).resolve().parent.parent
 ARTIFACTS = ROOT / "artifacts"
@@ -57,12 +57,12 @@ async def report_previews():
                         await service.add_transfer(gid, 11, route)
                     state = await service.snapshot(gid)
                 suffix = "-settled" if settled else ""
-                with damage_image(state) as output:
+                with balance_image(state) as output:
                     data = output.getvalue()
                 for path in [
-                    SCREENSHOTS / f"kintab-damage{suffix}.png",
-                    DESIGN / f"damage{suffix}-preview-v2.png",
-                    ARTIFACTS / f"damage{suffix}-preview.png",
+                    SCREENSHOTS / f"kintab-balance{suffix}.png",
+                    DESIGN / f"balance{suffix}-preview.png",
+                    ARTIFACTS / f"balance{suffix}-preview.png",
                 ]:
                     path.write_bytes(data)
         finally:

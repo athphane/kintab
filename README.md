@@ -12,7 +12,7 @@ Split household bills and settle up without leaving Telegram. KinTab combines a 
 
 - **Log expenses in chat.** Send `/spent 450 groceries`, then open the Mini App to see the split, history, and monthly totals.
 - **Share wallets, not confusion.** Couples can settle together; guests and weighted splits let the tab match your household.
-- **Make settling up clear.** See who pays whom, record payments, and share a balance report with `/damage`.
+- **Make settling up clear.** See who pays whom, record payments, and share a balance report with `/balance`.
 - **Keep the details.** Trace every balance back to its entries, review changes, and export the ledger as CSV.
 
 New households start at **zero**. Bring an existing balance if you need one. Run your own instance with Python, SQLite, and Docker, or try the bot at **[@kintabbot](https://t.me/kintabbot)**. The hosted Mini App lives at [kintab.athfan.dev](https://kintab.athfan.dev); open it through your Telegram group to sign in.
@@ -40,14 +40,14 @@ The Mini App on mobile and desktop, in light and dark themes. Screenshots use fi
 
 </details>
 
-The `/damage` command creates a shareable balance report with the same design, including the settlement plan and each wallet's balance.
+The `/balance` command creates a shareable **Your shared tab** report, including the payment plan and each wallet's balance. Neutral wording, numbered payment steps, and clear “to pay” / “to receive” labels make it easier to scan without judgment or urgency. When everything is settled, it simply says there is nothing to pay.
 
-<img src="docs/screenshots/kintab-damage.png" alt="KinTab balance report with total to settle, shared spending, payment routes and wallet balances" width="540">
+<img src="docs/screenshots/kintab-balance.png" alt="Your shared tab: total to settle, two payment steps, shared spending, payment routes and wallet balances" width="540">
 
 <details>
 <summary>Fully settled report</summary>
 
-<img src="docs/screenshots/kintab-damage-settled.png" alt="KinTab balance report after all payments are recorded" width="540">
+<img src="docs/screenshots/kintab-balance-settled.png" alt="Your shared tab after all payments are recorded: nothing to pay right now" width="540">
 
 </details>
 
@@ -74,7 +74,7 @@ The server verifies Telegram's signed `initData` (maximum age one hour), verifie
 | Reply to a person's message with `/spent 1200 electricity` | Select a payer without a username |
 | `/paid 3000` | Your wallet paid; choose a recipient if ambiguous |
 | `/paid 3000 @ibrahim` | Your wallet paid Ibrahim's wallet |
-| `/damage` or `/owed` | A fun balance image: total to settle, who pays whom, and wallet balances |
+| `/balance` | A balance image: total to settle, clear payment steps, who pays whom, and wallet balances |
 | `/tab` | Refresh and re-pin the running total |
 | `/leave` | Stop sharing future expenses; past debts remain |
 | `/export` | All entries, deleted/undone status, shares and audit records as CSV in DM |
@@ -83,7 +83,7 @@ The server verifies Telegram's signed `initData` (maximum age one hour), verifie
 
 Start a private chat with the bot once before using `/export`, so Telegram permits DMs. Amounts accept `450`, `1,200` and `1200.50`; negative, zero, malformed and over-precision values are rejected. A single entry is limited to one trillion minor units.
 
-`/damage` renders a PNG from the current ledger, using the group’s currency and debt mode. Shared spending excludes deleted expenses and all transfers; the amount to settle reflects opening balances, payments, and write-offs. The card shows up to six payments and six wallets, with full totals and a link to the remaining details in **Open tab**. It does not change balances or pins.
+`/balance` renders a PNG from the current ledger, using the group’s currency and debt mode. Shared spending excludes deleted expenses and all transfers; the amount to settle reflects opening balances, payments, and write-offs. The card shows up to six payments and six wallets, with full totals and a link to the remaining details in **Open tab**. It does not change balances or pins. The earlier `/damage` and `/owed` commands remain available as aliases.
 
 Expenses have separate **payer** and **logger** fields. The payer's wallet and the logger can edit or delete an expense. A participant can tap **Not mine?** to request review without changing the ledger. Either wallet can undo a payment for 24 hours in chat, and at any time in the Mini App. Both wallets can edit or undo opening balances. Only the creditor's wallet can forgive a debt. Unauthorized taps show an alert and change nothing.
 

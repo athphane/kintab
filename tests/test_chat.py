@@ -226,31 +226,39 @@ async def test_concurrent_entry_delivery_uses_one_message_and_latest_content(cha
     assert "MVR 20.00" in client.edits[-1][2]
 
 
-@pytest.mark.parametrize("command", ["/damage", "/owed", "/damage@KinTabTestBot"])
-async def test_damage_command_posts_a_photo_without_changing_the_tab(chat, household, command):
+@pytest.mark.parametrize("command", ["/balance", "/balance@KinTabTestBot", "/damage", "/owed"])
+@pytest.mark.parametrize("amount_minor", [0, 40000])
+async def test_balance_command_posts_a_photo_without_changing_the_tab(chat, household, command, amount_minor):
     import io
 
     from PIL import Image
 
     client, notifier, handlers = chat
     group, _ = household
-    await notifier.service.add_expense(group["id"], 11, {"amount_minor": 40000, "description": "Dinner"})
+    if amount_minor:
+        await notifier.service.add_expense(
+            group["id"], 11, {"amount_minor": amount_minor, "description": "Dinner"}
+        )
     before = await notifier.service.snapshot(group["id"])
     await handlers.command(client, Message(client, group["chat_id"], command))
     assert await notifier.service.snapshot(group["id"]) == before
     assert not client.messages and not client.edits and not notifier.tasks
     photo = client.photos[0]
     assert photo.chat_id == group["chat_id"]
-    assert "who owes whom" in photo.caption and "Simplified" in photo.caption
+    assert "Your shared tab." in photo.caption and "Simplified" in photo.caption
+    if amount_minor:
+        assert "1. Send a payment" in photo.caption and "2. Record it with /paid AMOUNT." in photo.caption
+    else:
+        assert "Nothing to pay right now." in photo.caption and "/paid" not in photo.caption
     assert photo.reply_markup.inline_keyboard[0][0].text == "Open tab"
     with Image.open(io.BytesIO(photo.image)) as image:
         assert image.format == "PNG"
         image.verify()
 
 
-async def test_damage_command_requires_a_group(chat):
+async def test_balance_command_requires_a_group(chat):
     client, _, handlers = chat
-    message = Message(client, 11, "/damage")
+    message = Message(client, 11, "/balance")
     message.chat.type = enums.ChatType.PRIVATE
     await handlers.command(client, message)
     assert not client.photos

@@ -23,7 +23,7 @@ HELP = (
     "/spent 1200 electricity @sister — someone else paid\n"
     "Or reply to their message with /spent 1200 electricity.\n"
     "/paid 3000 [@recipient] — your wallet sent money\n"
-    "/damage (or /owed) — a picture of who owes whom\n"
+    "/balance — your shared tab and payment steps\n"
     "/tab — running total and re-pin\n/leave — stop sharing new expenses; old debts remain\n"
     "/export — all entries and audit trail in a CSV, sent in DM\n"
     "/forget — delete the tab after confirmation\n\n"
@@ -104,16 +104,20 @@ class ChatHandlers:
                 else:
                     await message.reply_text(HELP, parse_mode=enums.ParseMode.DISABLED)
                 return
-            if command in {"damage", "owed"}:
+            if command in {"balance", "damage", "owed"}:
                 state = await self.service.snapshot(gid)
-                photo = await asyncio.to_thread(report.damage_image, state)
+                photo = await asyncio.to_thread(report.balance_image, state)
+                steps = (
+                    "1. Send a payment your usual way.\n2. Record it with /paid AMOUNT.\n\n"
+                    if state["lines"]
+                    else "All settled. Nothing to pay right now.\n\n"
+                )
                 try:
                     await client.send_photo(
                         group["chat_id"],
                         photo,
-                        caption="The damage is in. Here’s who owes whom. "
-                        f"({group['debt_mode'].capitalize()} debts.)\n"
-                        "Send money your usual way, then record it with /paid. Open tab for the full details.",
+                        caption=f"Your shared tab. ({group['debt_mode'].capitalize()} payment plan.)\n\n"
+                        f"{steps}Open tab for the full details.",
                         reply_markup=self.notifier.tab_keyboard(group),
                         parse_mode=enums.ParseMode.DISABLED,
                     )
@@ -541,7 +545,19 @@ def register_handlers(client, service, notifier):
         MessageHandler(
             handlers.command,
             filters.command(
-                ["start", "help", "spent", "paid", "tab", "damage", "owed", "leave", "export", "forget"]
+                [
+                    "start",
+                    "help",
+                    "spent",
+                    "paid",
+                    "tab",
+                    "balance",
+                    "damage",
+                    "owed",
+                    "leave",
+                    "export",
+                    "forget",
+                ]
             ),
         ),
         group=0,
